@@ -7,7 +7,6 @@ public class BoletimFurtoVeiculo {
     private String identificador;
     private LocalDate dataOcorrencia;
     private PeriodoOcorrencia periodoOcorrencia;
-
     private Endereco localOcorrencia;
     private Veiculo veiculoFurtado;
 
