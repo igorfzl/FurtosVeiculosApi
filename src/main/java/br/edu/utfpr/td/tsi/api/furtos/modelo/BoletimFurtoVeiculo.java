@@ -1,5 +1,7 @@
 package br.edu.utfpr.td.tsi.api.furtos.modelo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -59,5 +61,6 @@ public class BoletimFurtoVeiculo {
     }
 
     // Uma lista, pois o relacionamento permite várias partes (vítimas, testemunhas)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private List<Parte> partes;
 }

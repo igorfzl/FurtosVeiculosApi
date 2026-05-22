@@ -9,7 +9,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,7 +16,6 @@ import java.util.UUID;
 @Service
 public class BoletimService {
 
-    // Lista que atuará como nossa "Base de Dados" em memória principal
     private List<BoletimFurtoVeiculo> boletins = new ArrayList<>();
 
     @PostConstruct
@@ -91,13 +89,47 @@ public class BoletimService {
     }
 
 
-    // Método que o Controller usará para buscar os dados
     public List<BoletimFurtoVeiculo> listarTodos() {
         return this.boletins;
+
     }
 
-    // --- MÉTODOS AUXILIARES PARA CONVERSÃO SEGURA DE ENUMS ---
 
+    public BoletimFurtoVeiculo cadastrar(BoletimFurtoVeiculo novoBoletim) {
+        validarRegrasDeNegocio(novoBoletim);
+        novoBoletim.setIdentificador(UUID.randomUUID().toString());
+        this.boletins.add(novoBoletim);
+        return novoBoletim;
+    }
+
+
+    private void validarRegrasDeNegocio(BoletimFurtoVeiculo bo) {
+
+        if (bo.getVeiculoFurtado() == null || bo.getVeiculoFurtado().getEmplacamento() == null) {
+            throw new IllegalArgumentException("Os dados do veículo e o emplacamento são obrigatórios.");
+        }
+        if (bo.getVeiculoFurtado().getEmplacamento().getPlaca() == null ||
+                bo.getVeiculoFurtado().getEmplacamento().getPlaca().trim().isEmpty()) {
+            throw new IllegalArgumentException("A placa do veículo é de preenchimento obrigatório.");
+        }
+
+        if (bo.getDataOcorrencia() != null && bo.getDataOcorrencia().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("A data da ocorrência não pode ser uma data futura.");
+        }
+
+        if (bo.getPartes() != null) {
+            for (Parte parte : bo.getPartes()) {
+                String email = parte.getEmail();
+                // Uma validação simples: se o e-mail foi preenchido, ele TEM que ter um "@"
+                if (email != null && !email.trim().isEmpty() && !email.contains("@")) {
+                    throw new IllegalArgumentException("O formato do e-mail da vítima é inválido.");
+                }
+            }
+        }
+    }
+
+
+    //Converter nos enums
     private Estado parseEstado(String sigla) {
         if (sigla == null || sigla.trim().isEmpty()) return null;
         try {
@@ -110,12 +142,9 @@ public class BoletimService {
     private TipoVeiculo parseTipoVeiculo(String tipoStr) {
         if (tipoStr == null || tipoStr.trim().isEmpty()) return null;
         String t = tipoStr.trim().toUpperCase();
-
-        // Faz a ponte entre os termos do sistema da Polícia e o seu Enum
         if (t.contains("AUTOMOVEL") || t.contains("CARRO")) return TipoVeiculo.CARRO;
         if (t.contains("MOTO")) return TipoVeiculo.MOTO;
         if (t.contains("CAMINHAO") || t.contains("REBOQUE")) return TipoVeiculo.CAMINHAO;
-
         return TipoVeiculo.OUTROS;
     }
 
@@ -123,23 +152,14 @@ public class BoletimService {
         if (periodoStr == null || periodoStr.trim().isEmpty()) return null;
         String p = periodoStr.trim().toUpperCase();
 
-        switch (p) {
-            case "A NOITE":
-                return PeriodoOcorrencia.A_NOITE;
-            case "A TARDE":
-                return PeriodoOcorrencia.A_TARDE;
-            case "A MANHÃ":
-            case "PELA MANHÃ":
-                return PeriodoOcorrencia.A_MANHA;
-            case "DE MADRUGADA":
-                return PeriodoOcorrencia.DE_MADRUGADA;
-            case "EM HORA INCERTA":
-                return PeriodoOcorrencia.EM_HORA_INCERTA;
-            default:
-                return null;
-        }
+        return switch (p) {
+            case "A NOITE" -> PeriodoOcorrencia.A_NOITE;
+            case "A TARDE" -> PeriodoOcorrencia.A_TARDE;
+            case "A MANHÃ", "PELA MANHÃ" -> PeriodoOcorrencia.A_MANHA;
+            case "DE MADRUGADA" -> PeriodoOcorrencia.DE_MADRUGADA;
+            case "EM HORA INCERTA" -> PeriodoOcorrencia.EM_HORA_INCERTA;
+            default -> null;
+        };
 
     }
-
-
 }
